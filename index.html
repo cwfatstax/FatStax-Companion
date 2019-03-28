@@ -95,6 +95,16 @@
             padding: 5px 10px;
             display: inline-block;
         }
+        
+        /* TOOL SPECIFIC - HEALTH CHECKER */
+        
+        .options {
+            margin: 15px auto;
+        }
+        
+        #startHealthCheck {
+            display: none;
+        }
     </style>
 </head>
 
@@ -110,6 +120,7 @@
         </ul>
     </div>
     <div class="main">
+        <!-- ********* LANDING PAGE GENERATOR ********** -->
     <div id="landingPages" class="tool">
         <h2>Full Catalog Landing Page Generator</h2>
         <span>Choose Tile Color: </span>
@@ -127,6 +138,7 @@
         <p>Step 2: Select Catalog Export CSV w/ Landing Page</p>
             <input id="csvInput2" name="csvInput2" type="file" accept=".csv">
     </div>
+        <!-- ********* SERVER STATUS ALERT ********** -->
     <div id="serverStatus" class="tool">
         <h2>Server Status Checker</h2>
         <p>If the server does not respond with a 200(success) code or an error is returned with the provided URL, an alert will popup bringing this window to the front.</p>
@@ -140,13 +152,21 @@
             <button type="button" onclick="serverStatus()">Start</button>
         </form>
     </div>
+        
+        <!-- ********* HEALTH CHECKER ********** -->
     <div id="healthChecker" class="tool active">
         <h2>Catalog Health Checker</h2>
         <p class="description">
             Run catalog health checks in seconds to find broken images, bad links, missing content, and more.  Simply choose a catalog's export CSV, check the health check features you'd like to enable, then click "Start".
         </p>
+        <div class="options">
+            <h3>Options</h3>
+            <span class="inputLabel">Page Images</span>
+            <input id="feature-0" name="pageImages" type="checkbox" checked disabled>
+        </div>
         <span class="inputLabel">Select a catalog export CSV.</span><br>
         <input id="healthCSV" name="healthCSV" type="file" accept=".csv">
+        <button id="startHealthCheck" type="button">Start</button>
     </div>
     </div>
 </body>
@@ -156,12 +176,11 @@
 
     navButtons = document.querySelector('.nav').getElementsByTagName('li');
     buttonArr = Array.from(navButtons);
-    currentActiveNav = document.getElementById('healthNav');
+    currentActiveNav = document.getElementById('healthNav'); // starting active tool
 
     window.onload = function() {
 
       buttonArr.forEach(function(curr, i) {
-          //console.log(curr);
           curr.onclick = function() {
               makeActiveTool(curr);
           };
@@ -175,10 +194,7 @@
         lastActiveTool = document.getElementById(currentActiveNav.getAttribute('data-tool'));
         currentActiveTool = document.getElementById(newActiveNav.getAttribute('data-tool'));
         
-        currentActiveNav = newActiveNav;
-
-        console.log(lastActiveTool);
-        console.log(currentActiveTool);
+        currentActiveNav = newActiveNav; // update currentActiveNav element
 
         lastActiveTool.classList.toggle('active');
         currentActiveTool.classList.toggle('active');

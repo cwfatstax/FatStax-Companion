@@ -124,6 +124,12 @@ var uiController = (function() {
         },
         createImageObjects: function(srcArray, rowNum, allImageObjects) {
             return createImageObjects(srcArray, rowNum, allImageObjects);
+        },
+        enableStartButton: function(data) {
+            document.getElementById('startHealthCheck').style.display = 'inline';
+            document.getElementById('startHealthCheck').onclick = function() {
+                    appController.startHealthCheck(data);
+                };
         }
     };
     
@@ -146,9 +152,8 @@ var appController = (function(dataCtrl, uiCtrl) {
             complete: function (results, file) {
                 //console.log('Parsing complete:', results, file);
                 data = results.data;
-                rowIterator(data);
                 
-                // INSTEAD OF JUST STARTING THE ROWITERATOR, ENABLE A BUTTON TO BEGIN
+                uiCtrl.enableStartButton(data);                
                 // THE BUTTON FUNCTION THEN PASSES THE FILE DATA AND THE SELECTED FEATURES
                 
                 }
@@ -266,6 +271,9 @@ var appController = (function(dataCtrl, uiCtrl) {
     return {
         init: function() {
             setupEventListeners();
+        },
+        startHealthCheck: function(inputData) {
+            rowIterator(inputData);
         }
     }
 })(dataController, uiController);
