@@ -65,7 +65,8 @@
             padding: 10px 20px;
             border-radius: 3px;
             width: 90%;
-            max-width: 1024px
+            max-width: 1024px;
+            position: relative;
         }
         
         .active {
@@ -104,6 +105,25 @@
         
         #startHealthCheck {
             display: none;
+        }
+        .loadingContainer {
+            display: none;
+            width: 150px;
+            background-color: rgba(244,244,244,0.9);
+            border-radius: 3px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .loadingContainer span {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: #43464A;
+        }
+        #loadingImg {
+            width: 100%;
         }
     </style>
 </head>
@@ -155,6 +175,10 @@
         
         <!-- ********* HEALTH CHECKER ********** -->
     <div id="healthChecker" class="tool active">
+        <div class="loadingContainer">
+            <img id="loadingImg" src="images/loading.svg">
+            <span>Please wait..</span>
+        </div>
         <h2>Catalog Health Checker</h2>
         <p class="description">
             Run catalog health checks in seconds to find broken images, bad links, missing content, and more.  Simply choose a catalog's export CSV, check the health check features you'd like to enable, then click "Start".

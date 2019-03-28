@@ -3,7 +3,7 @@ List all broken images(includes Image URL, description images, and property imag
 List all broken links(includes Web URL, description links, and property links)
 List resource pages without an associated resource
 List pages missing a description or image URL
-Generates CSV with all results
+X Generates CSV with all results
 */
 
 var dataController = (function() {
@@ -54,7 +54,7 @@ var dataController = (function() {
         filteredResults = [];
         
         results.forEach(function(curr, i) {
-            console.log(curr['Broken Images']);
+            //console.log(curr['Broken Images']);
             if (curr['Broken Images'][0]) {
                 filteredResults.push(curr);
             }
@@ -67,6 +67,7 @@ var dataController = (function() {
             // returns array of image src's from the description field
             return srcExtractor(rowData);
         },
+        
         imageChecked: function() {
             imagesChecked++;
             return {
@@ -74,10 +75,15 @@ var dataController = (function() {
                 imagesChecked: imagesChecked
             };
         },
+        
         completeResults: completeResults,
+        
         filteredResults: function(results) {
             return filterResults(results);
-        }
+        },
+        
+        
+        
     };
     
 })();
@@ -86,7 +92,9 @@ var uiController = (function() {
     var DOMstrings, querySelector;
     
     DOMstrings = {
-        inputCSV: '#healthCSV'
+        inputCSV: '#healthCSV',
+        startBtn: '#startHealthCheck',
+        loadingEl: '.loadingContainer'
     };
     
     qSelect = function(element) {
@@ -126,10 +134,13 @@ var uiController = (function() {
             return createImageObjects(srcArray, rowNum, allImageObjects);
         },
         enableStartButton: function(data) {
-            document.getElementById('startHealthCheck').style.display = 'inline';
-            document.getElementById('startHealthCheck').onclick = function() {
+            document.querySelector(DOMstrings.startBtn).style.display = 'inline';
+            document.querySelector(DOMstrings.startBtn).onclick = function() {
                     appController.startHealthCheck(data);
                 };
+        },
+        showLoadingIndicator: function() {
+            document.querySelector(DOMstrings.loadingEl).style.display = 'inline-block';
         }
     };
     
@@ -208,43 +219,48 @@ var appController = (function(dataCtrl, uiCtrl) {
             console.log('Row Number: ' + allImages[i].rowNum);
             console.log(progress.imagesChecked + ' of '  + progress.totalImages + ' checked.');
         };
+        // CONVERT THIS TO SHOWING ON THE UI ^
         
-        // CHANGE THIS TO WHILE LOOP INSTEAD OF INTERVAL
         interval = setInterval(function() {
             for (let i = 0;i<allImages.length;i++) {
-                // if image loaded successfully log info and add to checked counter
-                if (allImages[i].imageEl.complete && allImages[i].imageEl.height !== 0 && !checkedImages.includes(i)) {
-                    progress = dataCtrl.imageChecked();
-                    if (progress.imagesChecked === progress.totalImages) {
-                        clearInterval(interval);
-                        logImageInfo(i, 'GOOD');
-                        filteredResults = dataCtrl.filteredResults(results);
-                        downloadCSV();
-                        break;
-                    }
-                    logImageInfo(i, 'GOOD');
-                    checkedImages.push(i);
-                } 
-                // if image did not load successfully log info and add to checked counter and results object
-                else if (allImages[i].imageEl.complete && allImages[i].imageEl.height === 0 && !checkedImages.includes(i)) {
-                    results[allImages[i].rowNum]['Broken Images'].push(allImages[i].imageSrc);
-                    progress = dataCtrl.imageChecked();
-                    if (progress.imagesChecked === progress.totalImages) {
-                        clearInterval(interval);
-                        logImageInfo(i, 'BROKEN');
-                        filteredResults = dataCtrl.filteredResults(results);
-                        downloadCSV();
-                        break;
-                    }
-                    logImageInfo(i, 'BROKEN');
-                    checkedImages.push(i);
-                }
 
-                // then delete image element
+                if (allImages[i].imageEl !== null && !checkedImages.includes(i) && allImages[i].imageEl.complete) {
+                    if (allImages[i].imageEl.height !== 0) { // image successfully loaded
+                        progress = dataCtrl.imageChecked();
+                        if (progress.imagesChecked === progress.totalImages) {
+                            clearInterval(interval);
+                            logImageInfo(i, 'GOOD');
+                            filteredResults = dataCtrl.filteredResults(results);
+                            document.querySelector(DOM.loadingEl).style.display = 'none'; // MOVE TO UICTRL AND CHANGE TO CLASS
+                            downloadCSV();
+                            allImages[i].imageEl = null;
+                            break;
+                        }
+                        logImageInfo(i, 'GOOD');
+                        checkedImages.push(i);
+                        allImages[i].imageEl = null;
+                    } 
+
+                    else if (allImages[i].imageEl.height === 0) { // image is broken
+                        results[allImages[i].rowNum]['Broken Images'].push(allImages[i].imageSrc);
+                        progress = dataCtrl.imageChecked();
+                        if (progress.imagesChecked === progress.totalImages) {
+                            clearInterval(interval);
+                            logImageInfo(i, 'BROKEN');
+                            filteredResults = dataCtrl.filteredResults(results);
+                            document.querySelector(DOM.loadingEl).style.display = 'none'; // MOVE TO UICTRL AND CHANGE TO CLASS
+                            downloadCSV();
+                            allImages[i].imageEl = null;
+                            break;
+                        }
+                        logImageInfo(i, 'BROKEN');
+                        checkedImages.push(i);
+                        allImages[i].imageEl = null;
+                    }
+                }
             }
             
         }, 50);
-        
     };
     
     // unparses the finalOutput and makes a downloadable CSV file
@@ -273,6 +289,7 @@ var appController = (function(dataCtrl, uiCtrl) {
             setupEventListeners();
         },
         startHealthCheck: function(inputData) {
+            uiCtrl.showLoadingIndicator();
             rowIterator(inputData);
         }
     }
