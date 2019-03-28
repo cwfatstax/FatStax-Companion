@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>FatStax Companion</title>
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="stylesheet" href="css/style.css" type="text/css">
+    <script src="js/jquery.js"></script>
+    <style>
+        
+        /* GLOBAL STYLES */
+        body {
+            font-family: sans-serif;
+            background-color: #222;
+            color: #C8CCD1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header img {
+            max-width: 400px;
+            width: 60%;
+        }
+        
+        h2 { 
+            color: #F8F9FA;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 400;
+            font-size: 30px;
+        }
+        
+        a {
+            color: #6699FF;
+        }
+        .nav {
+            margin: 15px auto;
+            text-align: center;
+        }
+        .nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .nav li {
+            display: inline-block;
+            border: 1px solid #696969;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .main {
+            display: flex;
+            justify-content: center;
+        }
+        .tool {
+            display: none;
+            opacity: 0;
+            background-color: #43464A;
+            padding: 10px 20px;
+            border-radius: 3px;
+            width: 90%;
+            max-width: 1024px
+        }
+        
+        .active {
+            display: inline-block;
+            opacity: 1;
+        }
+        
+        .description {
+            font-weight: 100;
+            line-height: 21px;
+            margin-bottom: 25px;
+        }
+        
+        .inputLabel {
+            display: inline-block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        /* TOOL SPECIFIC - LANDING PAGES */
+        
+        #downloadCSV1 {
+            visibility: hidden;
+            background-color: #D16228;
+            color: #fff;
+            border-radius: 3px;
+            padding: 5px 10px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <img src="images/Bigtincan_FatStax_Logo_Full%20Color.png">
+    </div>
+    <div class="nav">
+        <ul>
+            <li id="healthNav" data-tool="healthChecker">Catalog Health Check</li>
+            <li id="landingNav" data-tool="landingPages">Landing Page Generator</li>
+            <li id="serverNav" data-tool="serverStatus">Server Status Alert</li>
+        </ul>
+    </div>
+    <div class="main">
+    <div id="landingPages" class="tool">
+        <h2>Full Catalog Landing Page Generator</h2>
+        <span>Choose Tile Color: </span>
+        <input id="tileColor" placeholder="#A2ACAB" value="#A2ACAB" maxlength="7" type="text">
+        <sup>*must be 3 or 6 digit hex code</sup>
+        <br><br>
+        <form>
+            <input type="radio" name="mode" value="creation" checked> Create New<br>
+            <input type="radio" name="mode" value="update"> Update Existing
+        </form>
+        
+        <p>Step 1: Select Catalog Export CSV</p>
+        <input id="csvInput1" name="csvInput1" type="file" accept=".csv">
+        <a id="downloadCSV1" onclick="downloadCSV()">Download CSV</a>
+        <p>Step 2: Select Catalog Export CSV w/ Landing Page</p>
+            <input id="csvInput2" name="csvInput2" type="file" accept=".csv">
+    </div>
+    <div id="serverStatus" class="tool">
+        <h2>Server Status Checker</h2>
+        <p>If the server does not respond with a 200(success) code or an error is returned with the provided URL, an alert will popup bringing this window to the front.</p>
+        <form>
+            <label for="serverURL">Server URL</label>
+            <input id="serverURL" name="serverURL" type="text" placeholder="https://fatstaxapp.com" value="https://fatstaxapp.com">
+            <br>
+            <label for="statusInterval">Status Check Interval (# of minutes)</label>
+            <input type="number" id="statusInterval" name="statusInterval" placeholder="1" value="1">
+            <br>
+            <button type="button" onclick="serverStatus()">Start</button>
+        </form>
+    </div>
+    <div id="healthChecker" class="tool active">
+        <h2>Catalog Health Checker</h2>
+        <p class="description">
+            Run catalog health checks in seconds to find broken images, bad links, missing content, and more.  Simply choose a catalog's export CSV, check the health check features you'd like to enable, then click "Start".
+        </p>
+        <span class="inputLabel">Select a catalog export CSV.</span><br>
+        <input id="healthCSV" name="healthCSV" type="file" accept=".csv">
+    </div>
+    </div>
+</body>
+
+<script type=text/javascript>
+    var navButtons, buttonArr, currentActiveNav;
+
+    navButtons = document.querySelector('.nav').getElementsByTagName('li');
+    buttonArr = Array.from(navButtons);
+    currentActiveNav = document.getElementById('healthNav');
+
+    window.onload = function() {
+
+      buttonArr.forEach(function(curr, i) {
+          //console.log(curr);
+          curr.onclick = function() {
+              makeActiveTool(curr);
+          };
+    });
+
+    };
+
+    function makeActiveTool(newActiveNav) {
+        var lastActiveTool, currentActiveTool;
+
+        lastActiveTool = document.getElementById(currentActiveNav.getAttribute('data-tool'));
+        currentActiveTool = document.getElementById(newActiveNav.getAttribute('data-tool'));
+        
+        currentActiveNav = newActiveNav;
+
+        console.log(lastActiveTool);
+        console.log(currentActiveTool);
+
+        lastActiveTool.classList.toggle('active');
+        currentActiveTool.classList.toggle('active');
+      }
+</script>    
+    
+<script src="js/papaparse.min.js"></script>
+<script src="js/lpTemplates.js"></script>
+<script src="js/landing-pages.js"></script>
+<script src="js/server-status.js"></script>
+<script src="js/health-checker.js"></script>
+</html>
