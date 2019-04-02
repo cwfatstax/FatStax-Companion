@@ -74,6 +74,10 @@
             opacity: 1;
         }
         
+        .hide {
+            display: none;
+        }
+        
         .description {
             font-weight: 100;
             line-height: 21px;
@@ -107,7 +111,6 @@
             display: none;
         }
         .loadingContainer {
-            display: none;
             width: 150px;
             background-color: rgba(244,244,244,0.9);
             border-radius: 3px;
@@ -175,7 +178,7 @@
         
         <!-- ********* HEALTH CHECKER ********** -->
     <div id="healthChecker" class="tool active">
-        <div class="loadingContainer">
+        <div class="loadingContainer hide">
             <img id="loadingImg" src="images/loading.svg">
             <span>Please wait..</span>
         </div>

@@ -2,6 +2,7 @@ function serverStatus() {
     var url = document.getElementById('serverURL').value;
     var urlCors = 'https://cors-anywhere.herokuapp.com/' + url;
     var interval = document.getElementById('statusInterval').value * 60000;
+    var alertSound = new Audio('/audio/communication-channel.mp3');
     setInterval(function () {
         function checkTime(i) {
             return (i < 10) ? "0" + i : i;
@@ -20,6 +21,7 @@ function serverStatus() {
                 console.log('Status: ', response.status + ' @ ' + h + ':' + m);
             } else {
                 console.log('Status: ', response.status + ' @ ' + h + ':' + m);
+                alertSound.play();
                 alert(url + ' is down');
             }
         };

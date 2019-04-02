@@ -70,9 +70,13 @@ var dataController = (function() {
         
         imageChecked: function() {
             imagesChecked++;
+        },
+        
+        getProgress: function() {
             return {
                 totalImages: totalImages,
-                imagesChecked: imagesChecked
+                imagesChecked: imagesChecked,
+                percentComplete: Math.round((totalImages / imagesChecked) * 100)
             };
         },
         
@@ -91,19 +95,17 @@ var dataController = (function() {
 var uiController = (function() {
     var DOMstrings, querySelector;
     
+    // use only css media selectors for querySelector
     DOMstrings = {
         inputCSV: '#healthCSV',
         startBtn: '#startHealthCheck',
         loadingEl: '.loadingContainer'
     };
     
-    qSelect = function(element) {
-        return document.querySelector(element);
-    };
-    
     var createImageObjects = function(srcArray, rowNum, allImageObjects) {
         var allImageObjectsNew;
         
+        // so the new images are added to the existing image array
         allImageObjectsNew = allImageObjects;
         
         var ImageObj = function(imageEl, imageSrc, rowNum) {
@@ -119,7 +121,9 @@ var uiController = (function() {
             
             allImageObjectsNew.push(new ImageObj(image, image.src, rowNum));
         }
+        
         return allImageObjectsNew;
+        
     };
     
     return {
@@ -128,7 +132,7 @@ var uiController = (function() {
             return DOMstrings;
         },
         qSelect: function(el) {
-            return qSelect(el);
+            return document.querySelector(el);
         },
         createImageObjects: function(srcArray, rowNum, allImageObjects) {
             return createImageObjects(srcArray, rowNum, allImageObjects);
@@ -140,7 +144,10 @@ var uiController = (function() {
                 };
         },
         showLoadingIndicator: function() {
-            document.querySelector(DOMstrings.loadingEl).style.display = 'inline-block';
+            document.querySelector(DOMstrings.loadingEl).classList.remove('hide');
+        },
+        hideLoadingIndicator: function() {
+            document.querySelector(DOMstrings.loadingEl).classList.add('hide');
         }
     };
     
@@ -150,7 +157,9 @@ var appController = (function(dataCtrl, uiCtrl) {
     
     var DOM, data, results, filteredResults;
     
+    // includes all rows
     results = [];
+    // only includes the 'problem' rows
     filteredResults = [];
     
     var setupEventListeners = function() {
@@ -184,9 +193,9 @@ var appController = (function(dataCtrl, uiCtrl) {
             let srcArray = null;
             srcArray = dataCtrl.srcExtractor(inputData[i]);
             
-            if (srcArray) { // if the description has a src
+            if (srcArray) {
+                // create image objects with src urls
                 allImageObjects = uiCtrl.createImageObjects(srcArray, i, allImageObjects);
-                //console.log(allImageObjects);
             }
             
             // FEATURE END: DESCRIPTION IMAGE SRC
@@ -201,23 +210,28 @@ var appController = (function(dataCtrl, uiCtrl) {
             
             // missing media urls for resource pages
         }
-        results = dataCtrl.completeResults;
+        
+        getCompleteResults();
         
         checkImages(allImageObjects);
         
     };
     
-    // MOVE TO DATACTRL
+    var getCompleteResults = function() {
+        results = dataCtrl.completeResults;
+    };
+    
     var checkImages = function(allImages) {
         var interval, progress, logImageInfo, checkedImages;
         
+        // keeps track of which images have already been checked via index
         checkedImages = [];
         
         logImageInfo = function(i, status) {
             console.log('Image: ' + allImages[i].imageSrc);
             console.log('Status: ' + status);
             console.log('Row Number: ' + allImages[i].rowNum);
-            console.log(progress.imagesChecked + ' of '  + progress.totalImages + ' checked.');
+            console.log(progress.percentComplete + '% complete. ' + progress.imagesChecked + ' of '  + progress.totalImages + ' checked.');
         };
         // CONVERT THIS TO SHOWING ON THE UI ^
         
@@ -226,12 +240,13 @@ var appController = (function(dataCtrl, uiCtrl) {
 
                 if (allImages[i].imageEl !== null && !checkedImages.includes(i) && allImages[i].imageEl.complete) {
                     if (allImages[i].imageEl.height !== 0) { // image successfully loaded
-                        progress = dataCtrl.imageChecked();
+                        dataCtrl.imageChecked();
+                        progress = dataCtrl.getProgress();
                         if (progress.imagesChecked === progress.totalImages) {
                             clearInterval(interval);
                             logImageInfo(i, 'GOOD');
                             filteredResults = dataCtrl.filteredResults(results);
-                            document.querySelector(DOM.loadingEl).style.display = 'none'; // MOVE TO UICTRL AND CHANGE TO CLASS
+                            uiCtrl.hideLoadingIndicator();
                             downloadCSV();
                             allImages[i].imageEl = null;
                             break;
@@ -243,13 +258,15 @@ var appController = (function(dataCtrl, uiCtrl) {
 
                     else if (allImages[i].imageEl.height === 0) { // image is broken
                         results[allImages[i].rowNum]['Broken Images'].push(allImages[i].imageSrc);
-                        progress = dataCtrl.imageChecked();
+                        dataCtrl.imageChecked();
+                        progress = dataCtrl.getProgress();
                         if (progress.imagesChecked === progress.totalImages) {
                             clearInterval(interval);
                             logImageInfo(i, 'BROKEN');
                             filteredResults = dataCtrl.filteredResults(results);
-                            document.querySelector(DOM.loadingEl).style.display = 'none'; // MOVE TO UICTRL AND CHANGE TO CLASS
+                            uiCtrl.hideLoadingIndicator();
                             downloadCSV();
+                            // remove image element from memory
                             allImages[i].imageEl = null;
                             break;
                         }
@@ -260,7 +277,7 @@ var appController = (function(dataCtrl, uiCtrl) {
                 }
             }
             
-        }, 50);
+        }, 5);
     };
     
     // unparses the finalOutput and makes a downloadable CSV file
