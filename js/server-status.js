@@ -4,7 +4,9 @@ function serverStatus() {
     url = document.getElementById('serverURL').value;
     urlCors = 'https://cors-anywhere.herokuapp.com/' + url;
     interval = document.getElementById('statusInterval').value * 60000;
-    alertSound = new Audio('/audio/communication-channel.mp3');
+    // backup local copy in case url dies
+    //alertSound = new Audio('/audio/communication-channel.mp3');
+    alertSound = new Audio('https://notificationsounds.com/soundfiles/63538fe6ef330c13a05a3ed7e599d5f7/file-sounds-917-communication-channel.mp3');
     templateParams = {
         server: url
     };
