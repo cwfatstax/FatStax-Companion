@@ -6,14 +6,22 @@
     <title>FatStax Companion</title>
     <link rel="shortcut icon" href="images/favicon.ico">
     <link rel="stylesheet" href="css/style.css" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700" rel="stylesheet">
     <script src="js/jquery.js"></script>
+    <script type="text/javascript" src="https://cdn.emailjs.com/sdk/2.3.2/email.min.js"></script>
+    <script type="text/javascript">
+       (function(){
+          emailjs.init("user_qms5eqV1tuVqQgdgZ63I1");
+       })();
+    </script>
     <style>
         
         /* GLOBAL STYLES */
         body {
-            font-family: sans-serif;
+            font-family: 'Open Sans', sans-serif;
             background-color: #222;
             color: #C8CCD1;
+            box-sizing: border-box;
         }
 
         .header {
@@ -65,7 +73,7 @@
             padding: 10px 20px;
             border-radius: 3px;
             width: 90%;
-            max-width: 1024px;
+            max-width: 800px;
             position: relative;
         }
         
@@ -79,7 +87,7 @@
         }
         
         .description {
-            font-weight: 100;
+            font-weight: 300;
             line-height: 21px;
             margin-bottom: 25px;
         }
@@ -164,7 +172,7 @@
         <!-- ********* SERVER STATUS ALERT ********** -->
     <div id="serverStatus" class="tool">
         <h2>Server Status Checker</h2>
-        <p>If the server does not respond with a 200(success) code or an error is returned with the provided URL, an alert will popup bringing this window to the front.</p>
+        <p class="description">If the server does not respond with a 200(success) code or an error is returned with the provided URL, an alert will popup bringing this window to the front.</p>
         <form>
             <label for="serverURL">Server URL</label>
             <input id="serverURL" name="serverURL" type="text" placeholder="https://fatstaxapp.com" value="https://fatstaxapp.com">
@@ -199,33 +207,46 @@
 </body>
 
 <script type=text/javascript>
-    var navButtons, buttonArr, currentActiveNav;
-
-    navButtons = document.querySelector('.nav').getElementsByTagName('li');
-    buttonArr = Array.from(navButtons);
-    currentActiveNav = document.getElementById('healthNav'); // starting active tool
-
-    window.onload = function() {
-
-      buttonArr.forEach(function(curr, i) {
-          curr.onclick = function() {
-              makeActiveTool(curr);
-          };
-    });
-
-    };
-
-    function makeActiveTool(newActiveNav) {
-        var lastActiveTool, currentActiveTool;
-
-        lastActiveTool = document.getElementById(currentActiveNav.getAttribute('data-tool'));
-        currentActiveTool = document.getElementById(newActiveNav.getAttribute('data-tool'));
+    var mainController = (function() {
         
-        currentActiveNav = newActiveNav; // update currentActiveNav element
+        var navButtons, buttonArr, currentActiveNav;
 
-        lastActiveTool.classList.toggle('active');
-        currentActiveTool.classList.toggle('active');
-      }
+        // node list of nav buttons
+        navButtons = document.querySelector('.nav').getElementsByTagName('li');
+        // array of nav buttons
+        buttonArr = Array.from(navButtons);
+        // starting active tool
+        currentActiveNav = document.getElementById('healthNav');
+
+        var setupEventListeners = function() {
+            // top navbar
+            document.querySelector('.nav').addEventListener('click', makeActiveTool);
+        };
+
+        var makeActiveTool = function(newActiveNav) {
+            var lastActiveTool, currentActiveTool;
+            // converts from event to target element
+            newActiveNav = newActiveNav.target;
+            lastActiveTool = document.getElementById(currentActiveNav.getAttribute('data-tool'));
+            currentActiveTool = document.getElementById(newActiveNav.getAttribute('data-tool'));
+
+            // update currentActiveNav element
+            currentActiveNav = newActiveNav;
+
+            lastActiveTool.classList.toggle('active');
+            currentActiveTool.classList.toggle('active');
+          };
+        
+        return {
+            init: function() {
+                setupEventListeners();
+            }
+        }
+        
+    })();
+    
+    mainController.init();
+    
 </script>    
     
 <script src="js/papaparse.min.js"></script>
