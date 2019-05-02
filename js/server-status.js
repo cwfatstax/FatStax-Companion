@@ -1,3 +1,13 @@
+/*
+
+NEW FEATURES
+
+1. allow checking mulitple servers at once
+
+2. add the status to the UI
+
+*/
+
 function serverStatus() {
     var url, urlCors, interval, alertSound, templateParams, statusIsGood;
     
@@ -36,7 +46,7 @@ function serverStatus() {
                 console.log('Status: ', response.status + ' @ ' + h + ':' + m);
                 templateParams['status'] = response.status;
                 
-                if (statusIsGood === true) {
+                if (statusIsGood === true && response.status !== 503) {
                     
                     emailjs.send('gmail', 'server_down', templateParams)
                         .then(function(emailResponse) {

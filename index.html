@@ -193,15 +193,19 @@
         </div>
         <h2>Catalog Health Checker</h2>
         <p class="description">
-            Run catalog health checks in seconds to find broken images, bad links, missing content, and more.  Simply choose a catalog's export CSV, check the health check features you'd like to enable, then click "Start".
+            Run catalog health checks in seconds to find broken images, bad links, missing content, and more.  Simply choose a catalog's page export CSV, the same catalog's full resource export CSV, then click "Start".  Once complete, a CSV containing every "problem page" will be automatically downloaded.<br><br><sup>*the broken image/link columns will be located at the end (or far right) of the results spreadsheet</sup>
         </p>
+        <!--
         <div class="options">
             <h3>Options</h3>
             <span class="inputLabel">Page Images</span>
             <input id="feature-0" name="pageImages" type="checkbox" checked disabled>
         </div>
-        <span class="inputLabel">Select a catalog export CSV.</span><br>
-        <input id="healthCSV" name="healthCSV" type="file" accept=".csv">
+        -->
+        <span class="inputLabel">Select a <strong>catalog</strong> export CSV.</span><br>
+        <input id="healthCSV" name="healthCSV" type="file" accept=".csv"><br><br>
+        <span class="inputLabel">Select a <strong>resource</strong> export CSV.</span><br>
+        <input id="resourceCSV" name="resourceCSV" type="file" accept=".csv">
         <button id="startHealthCheck" type="button">Start</button>
     </div>
     </div>

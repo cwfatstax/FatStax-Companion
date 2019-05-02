@@ -1,51 +1,120 @@
 /*
-List all broken images(includes Image URL, description images, and property images)
-List all broken links(includes Web URL, description links, and property links)
-List resource pages without an associated resource
-List pages missing a description or image URL
-X Generates CSV with all results
+
+figure out cors issue
+
+once media export is available use the permalinks to check against urls formatted like fatstaxapp.com/m/xxxxxx
+rather than check its http status
+
+use Object.assign({a: 1}, obj); when adding new columns to dataset so they will be at the beginning rather than the end
+
+NEW FEATURES
+
+1. List all broken images(includes Image URL, description images, and property images)
+
+2. List all broken links(includes Web URL, description links, and property links)
+
+3. List resource pages without an associated resource
+
+4. List pages missing a description or image URL
+
+5. ** Generates CSV with all results **
 */
 
 var dataController = (function() {
     
-    var numOfImages, completeResults;
+    var totalOverall, overallChecked, totalImages, imagesChecked, totalLinks, linksChecked, productJumpLinks, mediaIDs, issues, completeResults;
     
+    totalOverall = 0;
+    overallChecked = 0;
     totalImages = 0;
     imagesChecked = 0;
-    completeResults = [];
+    totalLinks = 0;
+    linksChecked = 0;
+    productJumpLinks = [];
+    mediaIDs = [];
+    issues = {}; // each property is productJumpLink and within those are the Page object
+    completeResults = []; // contains all original columns and report results
     
-    var srcExtractor = function(rowData) {
-        var desc, regex, src, srcArray;
-        
-        desc = rowData['Description'];
-        regex = /<img.*?src="(.*?)"/mg;
-        srcArray = [];
-        var stopper = 0;
-        
-        while ((src = regex.exec(desc)) !== null) { // loops through all image src's
-            stopper++;
-            srcArray.push(src[1]);
+    var Issue = function(row, type) {
+        this.type = type;
+        this.row = row;
+    };
+    
+    var addObjects = function(objType, urlArray, rowNum, urlObj, allExistingObjects) {
+        var allObjectsNew = allExistingObjects;
+    
+        if (objType === 'image') {
             
-            //console.log(srcArray);
-            
-            if (stopper === 3) {
-                break;
+            for (let i = 0;i < urlArray.length;i++) {
+                let image = new Image();
+
+                image.src = urlArray[i];
+
+                allObjectsNew.push(new urlObj(image, image.src, rowNum));
             }
             
-            // return image src array to controller to give to the ui controller to add have it return a status back to the controller to pass back to the data controller to add it to the results
-            // add images to dom, but hidden and see if they load to test status
         }
-        //console.log('Returned array:');
-        //console.log(srcArray);
+        
+        else if (objType === 'link') {
+            
+            for (let i = 0;i < urlArray.length;i++) {
+                
+                if (urlArray[i].startsWith('/product/')) {
+                    
+                    allObjectsNew.push(new urlObj('jump link', urlArray[i], rowNum));
+                    
+                }
+                
+                else if (urlArray[i].startsWith('/media/')) {
+                         
+                    allObjectsNew.push(new urlObj('media link', urlArray[i], rowNum));
+                         
+                }
+                
+                else {
+                    
+                    allObjectsNew.push(new urlObj('web link', urlArray[i], rowNum));
+                    
+                }
+                
+            }
+            
+        }
+
+        return allObjectsNew;
+        
+    };
+    
+    var urlParser = function(regex, rowData) {
+        var urlArray, desc;
+        
+        urlArray = [];
+        desc = rowData['Description'];
+        
+        while ((url = regex.exec(desc)) !== null) { // loops through all urls
+
+            urlArray.push(url[1]);
+        
+        }
+        
         regex.lastIndex = 0; // reset match position to beginning for next string
+
+        return urlArray;
         
-        totalImages += srcArray.length;
-        rowData['Broken Images'] = [];
-        completeResults.push(rowData);
-        return srcArray;
+    };
+    
+    var updateTotals = function(type, num) {
         
-        // add result objects to results array
+        if (type === 'image') {
+            totalImages += num;
+        } 
         
+        else if (type === 'link') {
+            totalLinks += num;
+        }
+        
+        totalOverall += num;
+
     };
     
     var filterResults = function(results) {
@@ -54,31 +123,175 @@ var dataController = (function() {
         filteredResults = [];
         
         results.forEach(function(curr, i) {
-            //console.log(curr['Broken Images']);
-            if (curr['Broken Images'][0]) {
+
+            if (curr['Broken Images'][0] || curr['Broken Links'][0]) {
                 filteredResults.push(curr);
             }
         });
+        
         return filteredResults;
+        
     };
     
     return {
-        srcExtractor: function(rowData) {
-            // returns array of image src's from the description field
-            return srcExtractor(rowData);
+        addProductJumpLink: function(rowData) {
+            let productJumpLink = rowData['Product Jump Link'];
+            
+            if (productJumpLinks.includes(productJumpLink)) {
+                return;
+            }
+            
+            else {
+                productJumpLinks.push(productJumpLink);
+            }
+            
+        },
+        
+        gatherMediaIDs: function(resourceData) {
+            let mediaID, regex;
+            
+            regex = /.com\/m\/(\d+)/;
+            
+            for (let i = 0;i < resourceData.length;i++) {
+
+                if (resourceData[i]['PermalinkURL'] !== '' && resourceData[i]['PermalinkURL'] !== undefined) {
+
+                    mediaID = resourceData[i]['PermalinkURL'].match(regex)[1];
+                    mediaIDs.push(mediaID);
+                    
+                }
+
+            }
+            
+        },
+        
+        srcExtractor: function() {
+            var rowData, regex, srcArray, numOfImages;
+        
+            rowData = completeResults[completeResults.length - 1];
+            regex = /<img.*?src="(.*?)"/mg;
+            srcArray = urlParser(regex, rowData);
+            numOfImages = srcArray.length;
+            
+            updateTotals('image', numOfImages);
+            
+            return srcArray;
+            
+        },
+        
+        hrefExtractor: function() {
+            var rowData, regex, hrefArray, numOfLinks;
+            
+            rowData = completeResults[completeResults.length - 1];
+            regex = /<a.*?href="(.*?)"/mg;
+            hrefArray = urlParser(regex, rowData);
+            numOfLinks = hrefArray.length;
+
+            updateTotals('link', numOfLinks);
+
+            return hrefArray;
+            
+        },
+            
+        createImageObjects: function(srcArray, rowNum, allImageObjects) {
+            
+            var ImageObj = function(imageEl, imageSrc, rowNum) {
+                this.imageEl = imageEl;
+                this.imageSrc = imageSrc;
+                this.rowNum = rowNum;
+            };
+            
+            allImageObjectsNew = addObjects('image', srcArray, rowNum, ImageObj, allImageObjects);
+            
+            return allImageObjectsNew;
+            
+        },
+            
+        createLinkObjects: function(hrefArray, rowNum, allLinkObjects) {
+            
+            var LinkObj = function(linkType, href, rowNum) {
+                this.linkType = linkType;
+                this.href = href;
+                this.rowNum = rowNum;
+            };
+            
+            allLinkObjectsNew = addObjects('link', hrefArray, rowNum, LinkObj, allLinkObjects);
+    
+            return allLinkObjectsNew;
+            
+        },
+        
+        updateResults: function(rowData) {
+            
+            rowData['Broken Images'] = [];
+            rowData['Broken Links'] = [];
+        
+            completeResults.push(rowData);
+        },
+        
+        addIssue: function(row, type, detail) {
+            
+            // 1st issue of the row
+            if (!issues[row]) {
+                
+                issues[row] = new Issue(row, type);
+                issues[row][type] = detail;
+                
+            }
+            
+            // existing row issue and existing issue type
+            else if (issues[row][type]) {
+                
+                issues[row][type] += ', ' + detail;
+                
+            }
+            
+            // existing row issue, but new issue type
+            else {
+                
+                issues[row][type] = detail;
+                
+            }
+            
+        },
+        
+        updateIssue: function(productJumpLink, keyToUpdate, value) {
+
+            issues[productJumpLink][keyToUpdate] = value;            
+            
         },
         
         imageChecked: function() {
+            
             imagesChecked++;
+            overallChecked++;
+            
+        },
+        
+        linkChecked: function() {
+            
+            linksChecked++;  
+            overallChecked++;  
+            
         },
         
         getProgress: function() {
             return {
+                totalOverall: totalOverall,
+                overallChecked: overallChecked,
                 totalImages: totalImages,
                 imagesChecked: imagesChecked,
-                percentComplete: Math.round((totalImages / imagesChecked) * 100)
+                totalLinks: totalLinks,
+                linksChecked: linksChecked,
+                percentComplete: Math.round((overallChecked / totalOverall) * 100)
             };
         },
+            
+        productJumpLinks: productJumpLinks,
+        
+        mediaIDs: mediaIDs,
+        
+        issues: issues,
         
         completeResults: completeResults,
         
@@ -98,32 +311,9 @@ var uiController = (function() {
     // use only css media selectors for querySelector
     DOMstrings = {
         inputCSV: '#healthCSV',
+        resourceCSV: '#resourceCSV',
         startBtn: '#startHealthCheck',
         loadingEl: '.loadingContainer'
-    };
-    
-    var createImageObjects = function(srcArray, rowNum, allImageObjects) {
-        var allImageObjectsNew;
-        
-        // so the new images are added to the existing image array
-        allImageObjectsNew = allImageObjects;
-        
-        var ImageObj = function(imageEl, imageSrc, rowNum) {
-            this.imageEl = imageEl;
-            this.imageSrc = imageSrc;
-            this.rowNum = rowNum;
-        };
-        
-        for (let i = 0;i < srcArray.length;i++) {
-            let image = new Image();
-            
-            image.src = srcArray[i];
-            
-            allImageObjectsNew.push(new ImageObj(image, image.src, rowNum));
-        }
-        
-        return allImageObjectsNew;
-        
     };
     
     return {
@@ -134,13 +324,11 @@ var uiController = (function() {
         qSelect: function(el) {
             return document.querySelector(el);
         },
-        createImageObjects: function(srcArray, rowNum, allImageObjects) {
-            return createImageObjects(srcArray, rowNum, allImageObjects);
-        },
-        enableStartButton: function(data) {
+
+        enableStartButton: function(data, resourceData) {
             document.querySelector(DOMstrings.startBtn).style.display = 'inline';
             document.querySelector(DOMstrings.startBtn).onclick = function() {
-                    appController.startHealthCheck(data);
+                    appController.startHealthCheck(data, resourceData);
                 };
         },
         showLoadingIndicator: function() {
@@ -155,7 +343,7 @@ var uiController = (function() {
 
 var appController = (function(dataCtrl, uiCtrl) {
     
-    var DOM, data, results, filteredResults;
+    var DOM, pageData, resourceData, results, filteredResults, issues;
     
     // includes all rows
     results = [];
@@ -163,6 +351,7 @@ var appController = (function(dataCtrl, uiCtrl) {
     filteredResults = [];
     
     var setupEventListeners = function() {
+        
         DOM = uiCtrl.getDOMstrings();
 
         document.querySelector(DOM.inputCSV).onchange = function() {
@@ -171,54 +360,98 @@ var appController = (function(dataCtrl, uiCtrl) {
             header: true,
             complete: function (results, file) {
                 //console.log('Parsing complete:', results, file);
-                data = results.data;
-                
-                uiCtrl.enableStartButton(data);                
-                // THE BUTTON FUNCTION THEN PASSES THE FILE DATA AND THE SELECTED FEATURES
-                
+                pageData = results.data;             
+                readyCheck();
+                }
+            });
+        };
+        
+        document.querySelector(DOM.resourceCSV).onchange = function() {
+            Papa.parse(uiCtrl.qSelect(DOM.resourceCSV).files[0], {
+            delimiter: ',',
+            header: true,
+            complete: function (results, file) {
+                //console.log('Parsing complete:', results, file);
+                resourceData = results.data;  
+                readyCheck();
                 }
             });
         };
     };
     
-    var rowIterator = function(inputData) {
-        var allImageObjects;
+    var readyCheck = function() {
         
-        allImageObjects = [];
-        
-        for (let i = 0;i < inputData.length;i++) {
+        if (pageData && resourceData) {
+
+            uiCtrl.enableStartButton(pageData, resourceData);
             
-            // FEATURE START: DESCRIPTION IMAGE SRC
-            
-            let srcArray = null;
-            srcArray = dataCtrl.srcExtractor(inputData[i]);
-            
-            if (srcArray) {
-                // create image objects with src urls
-                allImageObjects = uiCtrl.createImageObjects(srcArray, i, allImageObjects);
-            }
-            
-            // FEATURE END: DESCRIPTION IMAGE SRC
-            
-            // FEATURE START: HREF HEALTH
-            
-            
-            // FEATURE END: HREF HEALTH
-            
-            
-            // missing fields(desc and image url)
-            
-            // missing media urls for resource pages
         }
-        
-        getCompleteResults();
-        
-        checkImages(allImageObjects);
         
     };
     
-    var getCompleteResults = function() {
+    var rowIterator = function(inputData) {
+        var allImageObjects, allLinkObjects;
+        
+        allImageObjects = [];
+        allLinkObjects = [];
+        
+        for (let i = 0;i < (inputData.length - 1);i++) {
+            
+            let productJumpLink = inputData[i]['Product Jump Link'];
+            let rowNum = i + 2;
+            
+            dataCtrl.updateResults(inputData[i]);
+            
+            
+            //only check page if hasn't already been checked (ex. multiple skus)
+            if (!dataCtrl.productJumpLinks.includes(productJumpLink)) {
+                
+                dataCtrl.addProductJumpLink(inputData[i]);
+        
+                // FEATURE START: DESCRIPTION IMAGE SRC
+            
+                let srcArray = null;
+                srcArray = dataCtrl.srcExtractor();
+
+                if (srcArray) {
+                    
+                    allImageObjects = dataCtrl.createImageObjects(srcArray, rowNum, allImageObjects);
+                    
+                }
+
+                // FEATURE END: DESCRIPTION IMAGE SRC
+
+                // FEATURE START: HREF HEALTH
+                
+                let hrefArray = null;
+                hrefArray = dataCtrl.hrefExtractor();
+
+                if (hrefArray.length !== 0) {
+
+                    allLinkObjects = dataCtrl.createLinkObjects(hrefArray, rowNum, allLinkObjects);
+
+                }
+
+                // FEATURE END: HREF HEALTH
+
+
+                // missing fields(desc and image url)
+
+                // blank pages (no desc or properties)
+
+                // missing media urls for resource pages
+                
+            }
+            
+        }
+        
         results = dataCtrl.completeResults;
+        
+        checkImages(allImageObjects);
+        checkLinks(allLinkObjects);
+        
+        completionCheck();
+
     };
     
     var checkImages = function(allImages) {
@@ -227,52 +460,49 @@ var appController = (function(dataCtrl, uiCtrl) {
         // keeps track of which images have already been checked via index
         checkedImages = [];
         
-        logImageInfo = function(i, status) {
-            console.log('Image: ' + allImages[i].imageSrc);
-            console.log('Status: ' + status);
-            console.log('Row Number: ' + allImages[i].rowNum);
-            console.log(progress.percentComplete + '% complete. ' + progress.imagesChecked + ' of '  + progress.totalImages + ' checked.');
-        };
-        // CONVERT THIS TO SHOWING ON THE UI ^
-        
         interval = setInterval(function() {
             for (let i = 0;i<allImages.length;i++) {
 
                 if (allImages[i].imageEl !== null && !checkedImages.includes(i) && allImages[i].imageEl.complete) {
+                    
                     if (allImages[i].imageEl.height !== 0) { // image successfully loaded
+                        
                         dataCtrl.imageChecked();
                         progress = dataCtrl.getProgress();
+                        
                         if (progress.imagesChecked === progress.totalImages) {
+                            
                             clearInterval(interval);
-                            logImageInfo(i, 'GOOD');
-                            filteredResults = dataCtrl.filteredResults(results);
-                            uiCtrl.hideLoadingIndicator();
-                            downloadCSV();
                             allImages[i].imageEl = null;
+                            
                             break;
+                            
                         }
-                        logImageInfo(i, 'GOOD');
+                        
                         checkedImages.push(i);
                         allImages[i].imageEl = null;
+                        
                     } 
 
                     else if (allImages[i].imageEl.height === 0) { // image is broken
-                        results[allImages[i].rowNum]['Broken Images'].push(allImages[i].imageSrc);
+                        
+                        results[allImages[i].rowNum  - 2]['Broken Images'].push(allImages[i].imageSrc);
+                        dataCtrl.addIssue(allImages[i].rowNum, 'Broken Images', allImages[i].imageSrc);
                         dataCtrl.imageChecked();
                         progress = dataCtrl.getProgress();
+                        
                         if (progress.imagesChecked === progress.totalImages) {
+                            
                             clearInterval(interval);
-                            logImageInfo(i, 'BROKEN');
-                            filteredResults = dataCtrl.filteredResults(results);
-                            uiCtrl.hideLoadingIndicator();
-                            downloadCSV();
-                            // remove image element from memory
                             allImages[i].imageEl = null;
+                            
                             break;
+                            
                         }
-                        logImageInfo(i, 'BROKEN');
+                        
                         checkedImages.push(i);
                         allImages[i].imageEl = null;
+                        
                     }
                 }
             }
@@ -280,34 +510,138 @@ var appController = (function(dataCtrl, uiCtrl) {
         }, 5);
     };
     
-    // unparses the finalOutput and makes a downloadable CSV file
-        var downloadCSV = function() {
-            var csv = Papa.unparse(filteredResults);
+    var checkLinks = function(allLinks) {
+        var interval, checkedLinks;
+        
+        // keeps track of which images have already been checked via index
+        checkedLinks = [];
 
-            var csvData = new Blob([csv], {
-                type: 'text/csv;charset=utf-8;'
-            });
-            var csvURL = null;
-            if (navigator.msSaveBlob) {
-                csvURL = navigator.msSaveBlob(csvData, 'Health-Check-Results.csv');
-            } else {
-                csvURL = window.URL.createObjectURL(csvData);
+        for (let i = 0;i < allLinks.length;i++) {
+            let link, mediaID;
+            
+            link = allLinks[i];
+            
+            if (!checkedLinks.includes(i)) {
+            
+                if (link['linkType'] === 'jump link') {
+
+                    if (!dataCtrl.productJumpLinks.includes(link.href)) {
+
+                        dataCtrl.addIssue(link.rowNum, 'Broken Links', link.href);
+                        results[link.rowNum - 2]['Broken Links'].push(link.href);
+                    }
+
+                    dataCtrl.linkChecked();
+                    checkedLinks.push(i);
+
+                }
+                
+                else if (link['linkType'] === 'media link') {
+                    
+                    mediaID = link.href.match(/\/media\/(\d+)$/)[1]
+                    
+                    if (!dataCtrl.mediaIDs.includes(mediaID)) {
+                        
+                        dataCtrl.addIssue(link.rowNum, 'Broken Links', link.href);
+                        results[link.rowNum - 2]['Broken Links'].push(link.href);
+                        
+                    }
+
+                    dataCtrl.linkChecked();
+                    checkedLinks.push(i);
+                    
+                }
+
+                else if (link['linkType'] === 'web link') {
+                    let xhttp, urlCors;
+
+                    xhttp = new XMLHttpRequest();
+                    urlCors = link.href; //'https://cors-anywhere.herokuapp.com/' + link.href;
+
+                    xhttp.onreadystatechange = function() {
+
+                        if (this.readyState == 4) {
+                            
+                            if (this.status === 404) {
+                                
+                                dataCtrl.addIssue(link.rowNum, 'Broken Links', link.href);
+                                results[link.rowNum  - 2]['Broken Links'].push(link.href);
+                                
+                            }
+
+                            dataCtrl.linkChecked();
+                            checkedLinks.push(i); 
+
+                       }
+
+                    };
+
+                    xhttp.open("GET", urlCors, true);
+                    xhttp.send(); 
+
+                }
+                
             }
+            
+        }
+        
+    };
+    
+    var completionCheck = function() {
+        
+        interval = setInterval(function() {
+            let progress;
+            
+            progress = dataCtrl.getProgress();
+            console.log(progress.imagesChecked + ' of ' + progress.totalImages + ' images & ' + progress.linksChecked + ' of ' + progress.totalLinks + ' links');
+            console.log(progress.overallChecked + ' of ' + progress.totalOverall);
+            console.log(progress.percentComplete + '% complete');
+            if (progress.overallChecked === progress.totalOverall) {
+             
+                clearInterval(interval);
+                console.log(dataCtrl.issues);
+                uiCtrl.hideLoadingIndicator();
+                filteredResults = dataCtrl.filteredResults(results);
+                downloadCSV();
+            }
+            
+        }, 500);
+        
+    };
+    
+    // unparses the finalOutput and makes a downloadable CSV file
+    var downloadCSV = function() {
+        var csv = Papa.unparse(filteredResults);
 
-            var tempLink = document.createElement('a');
-            tempLink.href = csvURL;
-            tempLink.setAttribute('download', 'Health-Check-Results.csv');
-            tempLink.click();
-        };
+        var csvData = new Blob([csv], {
+            type: 'text/csv;charset=utf-8;'
+        });
+        var csvURL = null;
+        if (navigator.msSaveBlob) {
+            csvURL = navigator.msSaveBlob(csvData, 'Health-Check-Results.csv');
+        } else {
+            csvURL = window.URL.createObjectURL(csvData);
+        }
+
+        var tempLink = document.createElement('a');
+        tempLink.href = csvURL;
+        tempLink.setAttribute('download', 'Health-Check-Results.csv');
+        tempLink.click();
+    };
             
     
     return {
         init: function() {
+            
             setupEventListeners();
+            
         },
-        startHealthCheck: function(inputData) {
+        startHealthCheck: function(inputData, resourceData) {
+            
             uiCtrl.showLoadingIndicator();
+            dataCtrl.gatherMediaIDs(resourceData);
             rowIterator(inputData);
+            
         }
     }
 })(dataController, uiController);
